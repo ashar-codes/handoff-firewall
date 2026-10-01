@@ -269,10 +269,13 @@ def test_model_failure_preserves_manual_path_and_audit(client):
     me = client.get("/api/auth/me").json()
     run_case(c["id"], me["tenant_id"], me["id"], Broken())
     out = client.get("/api/cases/" + c["id"]).json()
-    assert out["state"] == "BLOCKED"
-    assert out["error"] == "Unavailable local inference"
+    # Wording failure is audited but the deterministic request still goes out professionally.
+    assert out["state"] == "WAITING" and out["error"] is None
     assert any(e["kind"] == "model_failure" for e in out["events"])
-    assert out["actions"][0]["status"] == "PROPOSED"
+    assert out["actions"][0]["status"] == "WAITING"
+    assert out["actions"][0]["payload"]["message"] == (
+        "Could you please provide the payment terms for ORDER-1?"
+    )
 
 
 def test_model_cannot_fabricate_or_expand_tools(client):

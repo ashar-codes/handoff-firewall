@@ -4,6 +4,7 @@ import time
 
 from sqlalchemy import select
 
+from .communication import acceptable, questions, render, topic
 from .config import settings
 from .db import SessionLocal
 from .domain import (
@@ -22,6 +23,8 @@ from .domain import (
 from .evidence_text import exact_fields
 from .leases import LeaseLost, guard_claim
 from .models import Action, Approval, Case, Conflict, Document, Fact, Template, User, now
+from .normalization import canonical as business_value
+from .normalization import detect
 from .providers import ModelFailure, provider
 from .schemas import Draft, Extracted, Rule
 from .security import PERMISSIONS, digest
@@ -136,6 +139,25 @@ def evidence_agent(db, case, model):
                 extracted[d.id] = marker
             except ModelFailure as e:
                 failures.append(str(e))
+        # Deterministic coverage: typed values stated in prose become candidates even if the
+        # model misses them, so an unextracted contradiction cannot silently pass verification.
+        # Values equivalent to evidence already found in this document add nothing.
+        for line_no, line in enumerate(d.text.splitlines(), 1):
+            if line_no in matched_lines or line.startswith("[page "):
+                continue
+            for r in t.rules:
+                for value in detect(r, line):
+                    known = {
+                        business_value(r, m[2])[0] for m in matches if m[0]["id"] == r["id"]
+                    } | {
+                        business_value(r, f[3])[0]
+                        for f in existing
+                        if f[0] == d.id and f[1] == r["id"] and f[4] == d.sha256
+                    }
+                    if business_value(r, value)[0] not in known:
+                        matches.append(
+                            (r, r["fields"][0], value, line, f"line {line_no}", "pattern")
+                        )
         for r, field, value, quote, location, method in matches:
             key = (d.id, r["id"], field, value, d.sha256)
             if key in existing:
@@ -253,27 +275,61 @@ def repair_planner(db, case, model):
         groups.setdefault((owner, kind), []).append(rule)
     snap = snapshot(db, case)
     total = 0
+    documents = {d.id: d for d in case_rows(db, Document, case)}
+    all_facts = {f.id: f for f in case_rows(db, Fact, case)}
+    reference = case.business_key
     for group_number, ((owner, kind), rules) in enumerate(groups.items()):
-        labels = [r["label"] for r in rules]
+        items = questions(rules, case.statuses)
+        facts_by_requirement = {
+            r["id"]: [all_facts[i] for i in case.statuses[r["id"]]["facts"] if i in all_facts]
+            for r in rules
+        }
+        # Professional wording never depends on the model; it may only polish this text.
+        fallback = render(kind, reference, items, facts_by_requirement, documents)
+        message, drafted = fallback, False
+        other_topics = [topic(r) for r in t.rules if r not in rules]
         try:
             if group_number >= 2:
-                raise ModelFailure(
-                    "Drafting budget reached; remaining requests require manual review"
+                audit(
+                    db,
+                    case.tenant_id,
+                    case.id,
+                    "drafting_budget",
+                    "Drafting budget reached; standard wording used",
+                    agent="Repair Planner",
                 )
-            draft = model.structured(
-                "Draft one concise internal request for the listed gaps. "
-                "Do not claim anything is already approved or send it.",
-                {"labels": labels, "states": {r["id"]: case.statuses[r["id"]] for r in rules}},
-                Draft,
-            )
-            message, drafted = draft.message, True
+            else:
+                draft = model.structured(
+                    "Rewrite this request as one concise, professional message to a colleague. "
+                    "Keep the reference, every topic, and any quoted values with their sources. "
+                    "Do not add questions, identifiers, links, approvals or instructions.",
+                    {"reference": reference, "request": fallback},
+                    Draft,
+                )
+                if acceptable(draft.message, reference, items, other_topics, fallback):
+                    message, drafted = draft.message, True
+                else:
+                    audit(
+                        db,
+                        case.tenant_id,
+                        case.id,
+                        "wording_rejected",
+                        "Model wording failed validation; standard wording used",
+                        agent="Repair Planner",
+                    )
         except ModelFailure as e:
-            message, drafted = "Manual review needed: " + "; ".join(labels), False
-            case.error = str(e)
-            graph_set(case, model_failed=True)
-            audit(db, case.tenant_id, case.id, "model_failure", str(e), agent="Repair Planner")
+            audit(
+                db,
+                case.tenant_id,
+                case.id,
+                "model_failure",
+                str(e) + "; standard wording used",
+                agent="Repair Planner",
+            )
         payload = {
             "requirements": [r["id"] for r in rules],
+            "reference": reference,
+            "questions": items,
             "message": message,
             "recipient": owner,
             "connector": "internal",
@@ -311,7 +367,8 @@ def repair_planner(db, case, model):
         existing = next((a for a in case_rows(db, Action, case) if a.dedupe_key == dedupe), None)
         if existing:
             # Same business purpose: never a second row. An unsent, unapproved proposal may
-            # receive the newly drafted wording; its fingerprint is rebound to that payload.
+            # receive newly drafted wording; wording is outside the fingerprint, so approvals
+            # and identity are unchanged.
             if drafted and existing.status == "PROPOSED" and existing.payload != payload:
                 existing.payload = payload
                 existing.fingerprint = fp
@@ -421,8 +478,8 @@ def execute_action(db, case, action):
 
 
 def action_agent(db, case):
-    # After a model/source failure only explicit human approvals run; fallback drafts stay manual.
-    held = case.graph.get("model_failed") or case.graph.get("evidence_failed")
+    # After a source/extraction failure only explicit human approvals run.
+    held = case.graph.get("evidence_failed")
     outcomes = []
     for action in sorted(case_rows(db, Action, case), key=lambda a: a.effort):
         if action.status == "APPROVED" or (action.status == "PROPOSED" and not held):
@@ -442,7 +499,7 @@ def route(db, case):
     # Human-approved deterministic work does not need the model. execute_action rechecks the
     # approval fingerprint, expiry, approver authority and current snapshot before any effect.
     approved = any(a.status == "APPROVED" for a in case_rows(db, Action, case))
-    if approved and (case.graph.get("evidence_failed") or case.graph.get("model_failed")):
+    if approved and case.graph.get("evidence_failed"):
         return "Action Agent", "A human-approved action can execute without the local model"
     if case.graph.get("evidence_failed"):
         return (
@@ -460,11 +517,6 @@ def route(db, case):
         return (
             "Repair Planner",
             "Unresolved requirements need a dependency-aware bundled repair plan",
-        )
-    if case.graph.get("model_failed"):
-        return (
-            "MANUAL",
-            "Local model failed; preserve manual repair proposals without pretending success",
         )
     pending = [a for a in case_rows(db, Action, case) if a.status in {"PROPOSED", "APPROVED"}]
     executable = [a for a in pending if not a.approval_required or a.status == "APPROVED"]

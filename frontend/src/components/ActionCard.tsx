@@ -46,7 +46,12 @@ export function ActionCard({
       <div className="action-card-title">
         <div>
           <span className="eyebrow">{a.kind.replaceAll("_", " ")}</span>
-          <h3>{a.payload.requirements.join(" · ")}</h3>
+          <h3>
+            {(
+              a.payload.questions?.map((q) => q.topic.replace(/^the /, "")) ??
+              a.payload.requirements
+            ).join(" · ")}
+          </h3>
         </div>
         <StateBadge state={a.status} />
       </div>

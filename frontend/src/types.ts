@@ -92,6 +92,7 @@ export type Action = {
   created_at: number;
   payload: {
     requirements: string[];
+    questions?: { requirement: string; topic: string; ask: string }[];
     message: string;
     recipient: string;
     connector: string;

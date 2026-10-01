@@ -106,11 +106,13 @@ class LocalProvider:
                 body["include_reasoning"] = False
         category = "unavailable"
         for attempt in range(2):  # one bounded retry, as documented
-            started, usage, status = time.monotonic(), {}, None
+            started, usage, status, error = time.monotonic(), {}, None, None
             try:
                 with httpx.Client(timeout=s.model_timeout, trust_env=False) as client:
                     response = client.post(url, json=body, headers=headers)
                 status = response.status_code
+                if status >= 400:
+                    error = _error_code(response)
                 if status in {401, 403}:
                     category = "auth"
                 elif status == 429:
@@ -134,7 +136,7 @@ class LocalProvider:
                 category = "unavailable"
             except (ValueError, KeyError, IndexError, TypeError):  # includes ValidationError
                 category = "invalid"
-            _record(s, schema, attempt, started, status, category, usage)
+            _record(s, schema, attempt, started, status, category, usage, error=error)
             if category == "auth" or attempt == 1:
                 break  # credentials do not improve on retry
             if category == "rate_limit":
@@ -146,7 +148,16 @@ class LocalProvider:
         raise _failure(category)
 
 
-def _record(s, schema, attempt, started, status, outcome, usage, served=None):
+def _error_code(response):
+    """Provider error type/code only (e.g. tokens/rate_limit_exceeded); never the message text."""
+    try:
+        err = response.json().get("error") or {}
+    except ValueError:
+        return None
+    return "/".join(str(err[k])[:40] for k in ("type", "code") if err.get(k)) or None
+
+
+def _record(s, schema, attempt, started, status, outcome, usage, served=None, error=None):
     """One metrics line per attempt: no prompt, document text, output or credentials."""
     log.info(
         "model_call %s",
@@ -159,6 +170,7 @@ def _record(s, schema, attempt, started, status, outcome, usage, served=None):
                 "attempt": attempt + 1,
                 "http_status": status,
                 "outcome": outcome,
+                "error_code": error,
                 "latency_ms": round((time.monotonic() - started) * 1000),
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
@@ -172,9 +184,7 @@ class TestProvider:
 
     def structured(self, task, data, schema):
         if schema.__name__ == "Draft":
-            return schema(
-                message="Please clarify the following requirements: " + ", ".join(data["labels"])
-            )
+            return schema(message=data["request"])
         return schema(candidates=[])
 
 

@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 
 from .models import Action, Conflict, Document, Event, Fact, Template, now
+from .normalization import VERSION as NORMALIZER_VERSION
+from .normalization import canonical as business_value
 from .security import digest
 from .storage import valid_original
 
@@ -90,6 +92,9 @@ def snapshot(db, case):
 
 
 def fingerprint(kind, payload, snap, owner):
+    # Internal request wording is cosmetic; an external draft's text is what gets approved.
+    if kind != "external_draft":
+        payload = {k: v for k, v in payload.items() if k != "message"}
     return digest(canonical({"kind": kind, "payload": payload, "snapshot": snap, "owner": owner}))
 
 
@@ -255,23 +260,44 @@ def evaluate(db, case, force=False):
                 if len({root_id(f) for f in accepted}) == 1:
                     latest = max(f.source_version for f in accepted)
                     accepted = [f for f in accepted if f.source_version == latest]
-            values = {normalize(f.value) for f in accepted}
+            # Typed normalization first: equivalent business values never count as conflicts.
+            values = {business_value(r, f.value)[0] for f in accepted}
             if len(values) > 1:
                 state, reason = "CONFLICTING", "Current accepted sources disagree"
-            elif any(not f.accepted and normalize(f.value) not in values for f in facts):
+            elif any(not f.accepted and business_value(r, f.value)[0] not in values for f in facts):
                 state, reason = (
                     "AWAITING_REVIEW",
                     "Candidate evidence contradicts accepted evidence",
                 )
-            elif r.get("expected") is not None and values != {normalize(r["expected"])}:
+            elif r.get("expected") is not None and values != {business_value(r, r["expected"])[0]}:
                 state, reason = "CONFLICTING", "Evidence differs from the approved expected value"
             elif r.get("review") and not any(f.accepted_by for f in accepted):
                 state, reason = "AWAITING_REVIEW", "Policy requires human acceptance"
             else:
                 state, reason = "SATISFIED", "Current source evidence satisfies the rule"
+        # Support trace: the accepted, current evidence that a SATISFIED requirement rests on.
+        support = (
+            [
+                {
+                    "fact_id": f.id,
+                    "document_id": f.document_id,
+                    "document_version": f.source_version,
+                    "source_hash": f.source_hash,
+                    "method": f.method,
+                    "accepted_by": f.accepted_by,
+                    "value": f.value,
+                    "normalized": business_value(r, f.value)[0],
+                    "normalizer": NORMALIZER_VERSION,
+                }
+                for f in accepted
+            ]
+            if state == "SATISFIED"
+            else []
+        )
         statuses[r["id"]] = {
             "state": state,
             "reason": reason,
+            "support": support,
             "facts": [f.id for f in facts],
             "rule_version": template.version,
         }
@@ -338,8 +364,11 @@ def ready(db, case):
     # Clearance never trusts the incremental cache. This bounded rules-only pass
     # has no model calls and independently checks every authoritative condition.
     evaluate(db, case, force=True)
-    return all(
-        case.statuses.get(r["id"], {}).get("state") in {"SATISFIED", "NOT_APPLICABLE"}
-        for r in t.rules
-        if r.get("mandatory", True)
-    )
+    # Absence of a conflict is never enough: each mandatory rule needs affirmative support.
+    for r in t.rules:
+        status = case.statuses.get(r["id"], {})
+        if not r.get("mandatory", True) or status.get("state") == "NOT_APPLICABLE":
+            continue
+        if status.get("state") != "SATISFIED" or not status.get("support"):
+            return False
+    return True

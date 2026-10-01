@@ -129,7 +129,11 @@ def test_rejected_credentials_are_not_retried(groq, monkeypatch, status):
 
 
 def test_rate_limit_retries_once_with_capped_backoff(groq, monkeypatch, caplog):
-    limited = (429, {"error": {"message": "rate"}}, {"retry-after": "30"})
+    limited = (
+        429,
+        {"error": {"type": "tokens", "code": "rate_limit_exceeded", "message": "org_x TPD"}},
+        {"retry-after": "30"},
+    )
     calls = respond(monkeypatch, limited, limited)
     with caplog.at_level(logging.INFO, logger="app.providers"):
         failure(
@@ -137,7 +141,8 @@ def test_rate_limit_retries_once_with_capped_backoff(groq, monkeypatch, caplog):
             lambda: LocalProvider().structured("x", {}, Draft),
         )
     assert len(calls) == 2 and groq == [5]
-    assert KEY not in caplog.text
+    assert KEY not in caplog.text and "org_x" not in caplog.text
+    assert '"error_code": "tokens/rate_limit_exceeded"' in caplog.text
 
 
 def test_server_error_then_success(groq, monkeypatch):
