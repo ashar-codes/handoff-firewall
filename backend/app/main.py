@@ -27,6 +27,7 @@ from .domain import (
     case_rows,
     fingerprint,
     invalidate,
+    retry,
     scoped,
     snapshot,
     transition,
@@ -437,9 +438,10 @@ def run(case_id: str, user=Depends(require("operate")), db=Depends(get_db)):
         transition(db, c, "VERIFYING", "Authorized readiness integrity recheck", user.id)
     if c.state == "ESCALATED":
         invalidate(db, c, actor=user.id, reason="Authorized retry after escalation")
-    # A deliberate retry actually repeats failed investigation/drafting.
+    # A deliberate retry repeats failed investigation/drafting; unchanged evidence keeps its
+    # revision so approvals and sent requests are not invalidated or duplicated.
     if c.error:
-        invalidate(db, c, actor=user.id, reason="Authorized retry of failed investigation")
+        retry(db, c, user.id)
     j = queue(db, c, user.id)
     db.commit()
     return public(j)

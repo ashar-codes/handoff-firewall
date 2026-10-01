@@ -56,7 +56,9 @@ The authenticated SSE endpoint streams persisted ordered events and supports cur
 
 ## Deployment boundary
 
-Native API/worker plus PostgreSQL is the simplest Mac setup. Compose also describes API, worker and static Nginx web. Production requires PostgreSQL, HTTPS origin and secure cookies. SQLite is a disposable test harness only. The application has not been benchmarked for large case volumes or multi-server failure modes; use real PostgreSQL concurrency tests before scaling workers.
+Native API/worker plus PostgreSQL is the simplest Mac setup. Compose also describes API, worker and static Nginx web. Production requires PostgreSQL, HTTPS origin and secure cookies. SQLite is a disposable test harness only. The application has not been benchmarked for large case volumes or multi-server failure modes; use real PostgreSQL concurrency tests before scaling workers. `scripts/verify-pg-concurrency.py` runs two live workers against a disposable `handoff_test` database and checks single claims and stale-claim fencing.
+
+Known performance limitation: a specialist step keeps its case/job row locks and database transaction open during the model call (bounded by `MODEL_TIMEOUT`, one retry and two drafts per planning step). This is what fences a stalled worker, but API mutations on that same case wait for the step to finish, and slow local inference reduces multi-worker throughput. Moving model calls outside the transaction requires splitting Evidence Agent and Repair Planner into prepare/call/revalidate phases; it is deferred, not a correctness defect.
 
 ## Evidence and lifecycle repairs
 

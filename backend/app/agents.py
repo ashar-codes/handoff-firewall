@@ -250,9 +250,9 @@ def repair_planner(db, case, model):
                 {"labels": labels, "states": {r["id"]: case.statuses[r["id"]] for r in rules}},
                 Draft,
             )
-            message = draft.message
+            message, drafted = draft.message, True
         except ModelFailure as e:
-            message = "Manual review needed: " + "; ".join(labels)
+            message, drafted = "Manual review needed: " + "; ".join(labels), False
             case.error = str(e)
             graph_set(case, model_failed=True)
             audit(db, case.tenant_id, case.id, "model_failure", str(e), agent="Repair Planner")
@@ -292,7 +292,13 @@ def repair_planner(db, case, model):
                 }
             )
         )
-        if any(a.dedupe_key == dedupe for a in case_rows(db, Action, case)):
+        existing = next((a for a in case_rows(db, Action, case) if a.dedupe_key == dedupe), None)
+        if existing:
+            # Same business purpose: never a second row. An unsent, unapproved proposal may
+            # receive the newly drafted wording; its fingerprint is rebound to that payload.
+            if drafted and existing.status == "PROPOSED" and existing.payload != payload:
+                existing.payload = payload
+                existing.fingerprint = fp
             continue
         prerequisites = sorted({k for r in rules for k in r.get("depends_on", [])})
         db.add(
@@ -314,7 +320,13 @@ def repair_planner(db, case, model):
         total += 1
     graph_set(case, planned=True)
     db.flush()
-    return f"Planned {total} bundled actions using transparent effort heuristics"
+    reused = sorted(
+        a.id[:8]
+        for a in case_rows(db, Action, case)
+        if a.kind == "internal_clarification" and a.status == "WAITING"
+    )
+    note = f"; reused outstanding requests {', '.join(reused)} (no new outreach)" if reused else ""
+    return f"Planned {total} bundled actions using transparent effort heuristics{note}"
 
 
 def execute_action(db, case, action):
@@ -393,9 +405,11 @@ def execute_action(db, case, action):
 
 
 def action_agent(db, case):
+    # After a model/source failure only explicit human approvals run; fallback drafts stay manual.
+    held = case.graph.get("model_failed") or case.graph.get("evidence_failed")
     outcomes = []
     for action in sorted(case_rows(db, Action, case), key=lambda a: a.effort):
-        if action.status in {"PROPOSED", "APPROVED"}:
+        if action.status == "APPROVED" or (action.status == "PROPOSED" and not held):
             outcomes.append(execute_action(db, case, action))
     graph_set(case, acted=True)
     return "; ".join(outcomes) or "No permitted action is executable"
@@ -409,6 +423,11 @@ def route(db, case):
         return "Requirement Agent", "Resolve the approved destination rule version"
     if not case.graph.get("searched"):
         return "Evidence Agent", "Search authorized existing evidence before requesting humans"
+    # Human-approved deterministic work does not need the model. execute_action rechecks the
+    # approval fingerprint, expiry, approver authority and current snapshot before any effect.
+    approved = any(a.status == "APPROVED" for a in case_rows(db, Action, case))
+    if approved and (case.graph.get("evidence_failed") or case.graph.get("model_failed")):
+        return "Action Agent", "A human-approved action can execute without the local model"
     if case.graph.get("evidence_failed"):
         return (
             "MANUAL",

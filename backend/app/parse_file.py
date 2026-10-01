@@ -85,7 +85,13 @@ if __name__ == "__main__":
         import resource
 
         resource.setrlimit(resource.RLIMIT_CPU, (8, 8))
-        resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+        try:
+            resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+        except ValueError:
+            # macOS rejects address-space limits below the interpreter's mapped size. CPU,
+            # file-size, caller timeout and upload-size bounds still apply; Linux stays capped.
+            if sys.platform != "darwin":
+                raise
         resource.setrlimit(resource.RLIMIT_FSIZE, (4 * 1024 * 1024, 4 * 1024 * 1024))
         text = extract(sys.argv[1])
         if len(text) > 500000:

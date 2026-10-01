@@ -60,3 +60,11 @@ def test_search_is_scoped_and_returns_current_source(client):
     assert response.status_code == 200, response.text
     assert response.json()[0]["id"] == d["id"]
     assert "path" not in response.json()[0]
+
+
+def test_parser_subprocess_reads_text_on_this_platform(client):
+    # macOS rejects RLIMIT_AS; the sandboxed parser must still extract text there.
+    c = make_case(client)
+    d = upload(client, c, "payment_terms: 30 days")
+    assert d["parse_error"] is None
+    assert d["text"] == "payment_terms: 30 days"

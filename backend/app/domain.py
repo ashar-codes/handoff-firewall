@@ -148,6 +148,36 @@ def invalidate(db, case, requirement_ids=None, actor=None, reason="Evidence chan
     )
 
 
+def retry(db, case, actor):
+    """Repeat a failed investigation/drafting step without treating unchanged evidence as new.
+
+    The revision is unchanged, so proposals, approvals and already-sent requests stay bound and
+    valid; the planner may refresh unsent wording in place. Source changes still use invalidate().
+    """
+    t = scoped(db, Template, case.template_id, case.tenant_id)
+    retained = [
+        a.id for a in case_rows(db, Action, case) if a.status in {"PROPOSED", "APPROVED", "WAITING"}
+    ]
+    reason = "Authorized retry of failed investigation"
+    case.graph = {
+        "dirty": [r["id"] for r in t.rules],
+        "change": {"actor_id": actor, "reason": reason},
+    }
+    case.error = None
+    case.updated_at = now()
+    if case.state in {"WAITING", "BLOCKED", "CHECKING"}:
+        transition(db, case, "VERIFYING", reason, actor)
+    audit(
+        db,
+        case.tenant_id,
+        case.id,
+        "retry",
+        reason + "; existing proposals, approvals and sent requests retained",
+        actor,
+        data={"retained_actions": retained},
+    )
+
+
 def normalize(value):
     return " ".join(str(value).strip().casefold().split())
 
