@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,10 +13,13 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     storage_path: str = "./data/files"
     upload_limit: int = Field(default=10 * 1024 * 1024, ge=1, le=25 * 1024 * 1024)
-    model_provider: Literal["ollama", "openai-compatible", "test"] = "ollama"
+    model_provider: Literal["ollama", "openai-compatible", "groq", "test"] = "ollama"
     model_base_url: str = "http://127.0.0.1:11434"
     model_name: str = "qwen2.5:7b"
     model_timeout: float = Field(default=30, ge=1, le=60)
+    # Hosted providers only; never logged or returned in errors.
+    groq_api_key: SecretStr | None = None
+    model_reasoning_effort: Literal["low", "medium", "high"] = "medium"
     max_steps: int = Field(default=24, ge=1, le=100)
     max_run_seconds: int = Field(default=180, ge=15, le=1800)
     session_hours: int = Field(default=8, ge=1, le=24)

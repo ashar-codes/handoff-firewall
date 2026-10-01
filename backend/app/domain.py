@@ -114,7 +114,11 @@ def invalidate(db, case, requirement_ids=None, actor=None, reason="Evidence chan
     for key in affected:
         statuses[key] = {"state": "INVALIDATED", "facts": [], "reason": reason}
     case.statuses = statuses
-    case.graph = {"dirty": sorted(affected), "change": {"actor_id": actor, "reason": reason}}
+    case.graph = {
+        "dirty": sorted(affected),
+        "change": {"actor_id": actor, "reason": reason},
+        "extracted": case.graph.get("extracted", {}),
+    }
     case.error = None
     case.updated_at = now()
     for a in case_rows(db, Action, case):
@@ -162,6 +166,7 @@ def retry(db, case, actor):
     case.graph = {
         "dirty": [r["id"] for r in t.rules],
         "change": {"actor_id": actor, "reason": reason},
+        "extracted": case.graph.get("extracted", {}),
     }
     case.error = None
     case.updated_at = now()

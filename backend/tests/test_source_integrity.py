@@ -68,3 +68,49 @@ def test_parser_subprocess_reads_text_on_this_platform(client):
     d = upload(client, c, "payment_terms: 30 days")
     assert d["parse_error"] is None
     assert d["text"] == "payment_terms: 30 days"
+
+
+def test_unchanged_narrative_is_not_re_extracted_after_human_review(client):
+    """A reworded re-extraction must not reopen evidence a reviewer already accepted."""
+    from app.agents import run_case
+    from app.schemas import Extracted
+
+    calls = []
+
+    class Rewording:
+        def structured(self, task, data, schema):
+            if schema is not Extracted:
+                return schema(message="Please review")
+            calls.append(data["document"])
+            value = ["within 30 days of invoice", "30 days"][min(len(calls) - 1, 1)]
+            quote = "The buyer will pay within 30 days of invoice."
+            return Extracted(
+                candidates=[
+                    {
+                        "requirement_id": "terms",
+                        "field": "payment_terms",
+                        "value": value,
+                        "quote": quote,
+                    }
+                ]
+            )
+
+    c = make_case(client)
+    upload(client, c, "The buyer will pay within 30 days of invoice.", "email.txt")
+    me = client.get("/api/auth/me").json()
+    run_case(c["id"], me["tenant_id"], me["id"], Rewording())
+    [fact] = client.get("/api/cases/" + c["id"]).json()["facts"]
+    r = client.post(
+        "/api/facts/" + fact["id"] + "/review", json={"accepted": True, "comment": "Checked"}
+    )
+    assert r.status_code == 200
+    assert client.post("/api/cases/" + c["id"] + "/run", json={}).status_code == 202
+    run_case(c["id"], me["tenant_id"], me["id"], Rewording())
+    out = client.get("/api/cases/" + c["id"]).json()
+    assert out["state"] == "READY" and len(out["facts"]) == 1 and len(calls) == 1
+
+    # A new document version is genuinely new evidence and is reviewed by the model again.
+    doc = out["documents"][0]
+    upload(client, c, "The buyer will pay within 45 days of invoice.", "email.txt", doc["id"])
+    run_case(c["id"], me["tenant_id"], me["id"], Rewording())
+    assert len(calls) == 2

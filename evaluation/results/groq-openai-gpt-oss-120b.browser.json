@@ -1,0 +1,280 @@
+{
+ "C01": {
+  "state": "READY",
+  "error": null,
+  "statuses": {
+   "purchase_order": "SATISFIED",
+   "quotation": "SATISFIED",
+   "terms": "SATISFIED",
+   "account": "SATISFIED",
+   "tax": "SATISFIED",
+   "discount": "NOT_APPLICABLE"
+  },
+  "facts": [
+   "purchase_order=PO-1101 [exact,accepted]",
+   "quotation=QT-1101 [exact,accepted]",
+   "account=AC-1101 [exact,accepted]",
+   "terms=30 days [exact,accepted]",
+   "tax=NTN-1101-AA [exact,accepted]"
+  ],
+  "actions": [],
+  "conflicts": [],
+  "route": [
+   "[NEW->CHECKING]",
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→VERIFY",
+   "[CHECKING->VERIFYING]",
+   "[VERIFYING->READY]"
+  ]
+ },
+ "C03": {
+  "state": "WAITING",
+  "error": null,
+  "statuses": {
+   "purchase_order": "SATISFIED",
+   "quotation": "SATISFIED",
+   "terms": "AWAITING_REVIEW",
+   "account": "SATISFIED",
+   "tax": "SATISFIED",
+   "discount": "NOT_APPLICABLE"
+  },
+  "facts": [
+   "purchase_order=PO-3303 [exact,accepted]",
+   "quotation=QT-1101 [exact,accepted]",
+   "account=AC-1101 [exact,accepted]",
+   "terms=30 days [exact,accepted]",
+   "tax=NTN-1101-AA [exact,accepted]",
+   "purchase_order=PO-3303 [model_candidate]",
+   "terms=within 45 days of invoice [model_candidate]"
+  ],
+  "actions": [
+   "review_evidence PROPOSED terms \"Please provide additional supporting evidence to resolve the contradiction between candidate and accepted evidence for the consistent payment terms.\""
+  ],
+  "conflicts": [],
+  "route": [
+   "[NEW->CHECKING]",
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Repair Planner",
+   "[CHECKING->BLOCKED]",
+   "✓Repair Planner",
+   "→WAIT",
+   "[BLOCKED->WAITING]"
+  ]
+ },
+ "C06_run": {
+  "state": "WAITING",
+  "error": null,
+  "statuses": {
+   "purchase_order": "SATISFIED",
+   "quotation": "SATISFIED",
+   "terms": "SATISFIED",
+   "account": "SATISFIED",
+   "tax": "SATISFIED",
+   "discount": "MISSING"
+  },
+  "facts": [
+   "purchase_order=PO-6606 [exact,accepted]",
+   "quotation=QT-1101 [exact,accepted]",
+   "account=AC-1101 [exact,accepted]",
+   "terms=30 days [exact,accepted]",
+   "tax=NTN-1101-AA [exact,accepted]",
+   "purchase_order=PO-6606 [model_candidate]"
+  ],
+  "actions": [
+   "internal_clarification WAITING discount \"Please provide approved evidence for the discount request to proceed with approval.\""
+  ],
+  "conflicts": [],
+  "route": [
+   "[NEW->CHECKING]",
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Repair Planner",
+   "[CHECKING->BLOCKED]",
+   "✓Repair Planner",
+   "→Action Agent",
+   "action:internal_clarification: WAITING",
+   "✓Action Agent",
+   "→WAIT",
+   "[BLOCKED->WAITING]"
+  ]
+ },
+ "C10b": {
+  "state": "WAITING",
+  "error": null,
+  "statuses": {
+   "purchase_order": "SATISFIED",
+   "quotation": "SATISFIED",
+   "terms": "SATISFIED",
+   "account": "SATISFIED",
+   "discount": "NOT_APPLICABLE",
+   "tax": "MISSING"
+  },
+  "facts": [
+   "purchase_order=PO-1010 [exact,accepted]",
+   "quotation=QT-1101 [exact,accepted]",
+   "account=AC-1101 [exact,accepted]",
+   "terms=30 days [exact,accepted]"
+  ],
+  "actions": [
+   "internal_clarification WAITING tax \"Please provide current, accepted evidence of tax registration to address the missing tax state.\""
+  ],
+  "conflicts": [],
+  "route": [
+   "[NEW->CHECKING]",
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Repair Planner",
+   "[CHECKING->BLOCKED]",
+   "✓Repair Planner",
+   "→Action Agent",
+   "action:internal_clarification: WAITING",
+   "✓Action Agent",
+   "→WAIT",
+   "[BLOCKED->WAITING]"
+  ]
+ },
+ "C18_run": {
+  "state": "WAITING",
+  "error": null,
+  "statuses": {
+   "purchase_order": "SATISFIED",
+   "quotation": "SATISFIED",
+   "account": "SATISFIED",
+   "terms": "MISSING",
+   "tax": "MISSING",
+   "discount": "NOT_APPLICABLE"
+  },
+  "facts": [
+   "purchase_order=PO-1818 [exact,accepted]",
+   "quotation=QT-1818 [exact,accepted]",
+   "account=AC-1818 [exact,accepted]"
+  ],
+  "actions": [
+   "internal_clarification WAITING terms,tax \"Please provide current evidence for consistent payment terms and tax registration to resolve the missing states.\""
+  ],
+  "conflicts": [],
+  "route": [
+   "[NEW->CHECKING]",
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Repair Planner",
+   "[CHECKING->BLOCKED]",
+   "✓Repair Planner",
+   "→Action Agent",
+   "action:internal_clarification: WAITING",
+   "✓Action Agent",
+   "→WAIT",
+   "[BLOCKED->WAITING]"
+  ]
+ },
+ "C18_final": {
+  "state": "WAITING",
+  "error": null,
+  "statuses": {
+   "purchase_order": "SATISFIED",
+   "quotation": "SATISFIED",
+   "account": "SATISFIED",
+   "terms": "MISSING",
+   "tax": "SATISFIED",
+   "discount": "NOT_APPLICABLE"
+  },
+  "facts": [
+   "purchase_order=PO-1818 [exact,accepted]",
+   "quotation=QT-1818 [exact,accepted]",
+   "account=AC-1818 [exact,accepted]",
+   "tax=NTN-1818-PR [human_reply,accepted,ACCEPTED]"
+  ],
+  "actions": [
+   "internal_clarification WAITING terms,tax \"Please provide current evidence for consistent payment terms and tax registration to resolve the missing states.\"",
+   "review_evidence INVALIDATED tax \"Please review the candidate evidence (ID: 65597370-91ac-4598-85fa-e812852e83fb) for tax registration as it is currently awaiting review.\""
+  ],
+  "conflicts": [],
+  "route": [
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Repair Planner",
+   "[VERIFYING->BLOCKED]",
+   "✓Repair Planner",
+   "→WAIT",
+   "[BLOCKED->WAITING]"
+  ]
+ },
+ "C20_run": {
+  "state": "READY",
+  "route": [
+   "[NEW->CHECKING]",
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→VERIFY",
+   "[CHECKING->VERIFYING]",
+   "[VERIFYING->READY]"
+  ]
+ },
+ "C20_after_replace": "VERIFYING",
+ "C20_final": {
+  "state": "WAITING",
+  "error": null,
+  "statuses": {
+   "purchase_order": "SATISFIED",
+   "quotation": "SATISFIED",
+   "terms": "SATISFIED",
+   "account": "SATISFIED",
+   "tax": "MISSING",
+   "discount": "NOT_APPLICABLE"
+  },
+  "facts": [
+   "purchase_order=PO-1101 [exact,accepted]",
+   "quotation=QT-1101 [exact,accepted]",
+   "account=AC-1101 [exact,accepted]",
+   "terms=30 days [exact,accepted]",
+   "tax=NTN-1101-AA [exact,accepted]",
+   "purchase_order=PO-1101 [exact,accepted]",
+   "quotation=QT-1101 [exact,accepted]",
+   "account=AC-1101 [exact,accepted]",
+   "terms=30 days [exact,accepted]"
+  ],
+  "actions": [
+   "internal_clarification WAITING tax \"Please provide current, accepted evidence of tax registration to address the missing tax state.\""
+  ],
+  "conflicts": [],
+  "route": [
+   "→Requirement Agent",
+   "✓Requirement Agent",
+   "→Evidence Agent",
+   "✓Evidence Agent",
+   "→Repair Planner",
+   "[VERIFYING->BLOCKED]",
+   "✓Repair Planner",
+   "→Action Agent",
+   "action:internal_clarification: WAITING",
+   "✓Action Agent",
+   "→WAIT",
+   "[BLOCKED->WAITING]"
+  ]
+ },
+ "pageErrors": []
+}
