@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-handoff}
+      POSTGRES_DB: ${POSTGRES_DB:-handoff}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/setup.sh or choose a database password}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  api:
+    profiles: [full]
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-handoff}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-handoff}
+      STORAGE_PATH: /data/files
+      FRONTEND_ORIGIN: http://localhost:8080
+      MODEL_BASE_URL: ${CONTAINER_MODEL_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: ["files:/data/files"]
+    depends_on:
+      db: {condition: service_healthy}
+    command: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+  worker:
+    profiles: [full]
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-handoff}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-handoff}
+      STORAGE_PATH: /data/files
+      MODEL_BASE_URL: ${CONTAINER_MODEL_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: ["files:/data/files"]
+    depends_on:
+      api: {condition: service_started}
+    command: ["sh", "-c", "uv run python -m app.wait_database && uv run python -m app.worker"]
+  web:
+    profiles: [full]
+    build: ./frontend
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [api]
+volumes:
+  postgres_data:
+  files:
+
