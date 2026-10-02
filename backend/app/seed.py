@@ -3,7 +3,7 @@
 import argparse
 import getpass
 import os
-from pathlib import Path
+from uuid import uuid4
 
 from sqlalchemy import select
 
@@ -13,6 +13,7 @@ from .domain import audit, canonical
 from .models import Action, Case, Document, Fact, Template, Tenant, User, now
 from .schemas import TemplateIn
 from .security import digest, hasher
+from .storage import evidence_storage, object_key
 
 
 def seed(password):
@@ -164,21 +165,20 @@ def seed(password):
             db.flush()
             previous = None
             for name, contents in docs:
-                path = Path(settings().storage_path).resolve() / tenant.id / case.id / name
-                path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-                path.write_text(contents)
-                os.chmod(path, 0o600)
+                replaced = business_key == "SO-1046" and previous
                 document = Document(
+                    id=str(uuid4()),
                     tenant_id=tenant.id,
                     case_id=case.id,
                     name=name,
                     sha256=digest(contents),
-                    path=str(path.relative_to(Path(settings().storage_path).resolve())),
                     text=contents,
+                    version=2 if replaced else 1,
                 )
-                if business_key == "SO-1046" and previous:
+                document.path = object_key(tenant.id, case.id, document.id, document.version, name)
+                evidence_storage().put(document.path, contents.encode())
+                if replaced:
                     previous.active = False
-                    document.version = 2
                     document.replaces_id = previous.id
                 db.add(document)
                 db.flush()

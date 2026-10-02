@@ -8,7 +8,16 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_engine(settings().database_url, pool_pre_ping=True)
+_url = settings().database_url
+engine = create_engine(
+    _url,
+    pool_pre_ping=True,
+    **(
+        {}
+        if _url.startswith("sqlite")
+        else {"pool_size": settings().db_pool_size, "max_overflow": settings().db_max_overflow}
+    ),
+)
 if engine.dialect.name == "sqlite":
 
     @event.listens_for(engine, "connect")

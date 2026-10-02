@@ -5,7 +5,7 @@ from app import models  # noqa: F401
 from app.config import settings
 from app.db import Base
 
-url = settings().database_url
+url = settings().migration_database_url or settings().database_url
 if context.is_offline_mode():
     context.configure(url=url, target_metadata=Base.metadata, literal_binds=True)
     with context.begin_transaction():

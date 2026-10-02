@@ -7,12 +7,14 @@ import re
 import secrets
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 
@@ -70,9 +72,22 @@ from .security import (
     require,
     verify_password,
 )
-from .storage import file_path
+from .storage import StorageError, evidence_storage, object_key
 
-app = FastAPI(title="Handoff Firewall", version="0.1.0", dependencies=[Depends(check_origin)])
+_production = settings().app_env == "production"
+app = FastAPI(
+    title="Handoff Firewall",
+    version="0.1.0",
+    dependencies=[Depends(check_origin)],
+    # Interactive API docs load third-party scripts; they are a development aid only.
+    docs_url=None if _production else "/docs",
+    redoc_url=None if _production else "/redoc",
+    openapi_url=None if _production else "/openapi.json",
+)
+CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'"
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings().frontend_origin],
@@ -106,7 +121,15 @@ async def headers(request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
-    response.headers["Cache-Control"] = "no-store"
+    path = request.url.path
+    if settings().frontend_dist and not path.startswith("/api"):
+        response.headers["Content-Security-Policy"] = CSP
+    # Content-hashed build assets never change; everything else is never cached.
+    response.headers["Cache-Control"] = (
+        "public, max-age=31536000, immutable"
+        if path.startswith("/assets/") and response.status_code == 200
+        else "no-store"
+    )
     return response
 
 
@@ -515,35 +538,42 @@ def upload(
     previous = scoped(db, Document, replaces_id, user.tenant_id) if replaces_id else None
     if previous and (previous.case_id != c.id or not previous.active):
         raise HTTPException(422, "Replacement must target an active document in this case")
-    root = Path(settings().storage_path).resolve()
-    target = root / user.tenant_id / c.id / (str(uuid4()) + suffix)
-    target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    with target.open("xb") as out:
-        out.write(content)
-    os.chmod(target, 0o600)
+    document_id = str(uuid4())
+    version = previous.version + 1 if previous else 1
     try:
-        result = subprocess.run(
-            [sys.executable, "-m", "app.parse_file", str(target)],
-            capture_output=True,
-            timeout=12,
-            check=False,
-        )
-        parsed = (
-            json.loads(result.stdout)
-            if result.returncode == 0
-            else {"text": "", "error": "Parser failed"}
-        )
-    except (subprocess.TimeoutExpired, ValueError):
-        parsed = {"text": "", "error": "Parser timed out or returned invalid data"}
+        key = object_key(user.tenant_id, c.id, document_id, version, name)
+        evidence_storage().put(key, content)
+    except StorageError as e:
+        raise HTTPException(503, str(e)) from None
+    # The trusted parser reads a private temporary copy; the stored original is untouched.
+    with tempfile.TemporaryDirectory(prefix="handoff-parse-") as scratch:
+        target = Path(scratch) / ("upload" + suffix)
+        target.write_bytes(content)
+        os.chmod(target, 0o600)
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "app.parse_file", str(target)],
+                capture_output=True,
+                timeout=12,
+                check=False,
+            )
+            parsed = (
+                json.loads(result.stdout)
+                if result.returncode == 0
+                else {"text": "", "error": "Parser failed"}
+            )
+        except (subprocess.TimeoutExpired, ValueError):
+            parsed = {"text": "", "error": "Parser timed out or returned invalid data"}
     d = Document(
+        id=document_id,
         tenant_id=user.tenant_id,
         case_id=c.id,
         name=name,
         sha256=filehash,
-        path=str(target.relative_to(root)),
+        path=key,
         text=parsed["text"],
         parse_error=parsed["error"],
-        version=previous.version + 1 if previous else 1,
+        version=version,
         replaces_id=replaces_id,
     )
     if previous:
@@ -580,7 +610,17 @@ def upload(
 def download(document_id: str, user=Depends(require("read")), db=Depends(get_db)):
     d = scoped(db, Document, document_id, user.tenant_id)
     scoped(db, Case, d.case_id, user.tenant_id)
-    return FileResponse(file_path(d.path), filename=d.name, media_type="application/octet-stream")
+    try:
+        content = evidence_storage().get(d.path)
+    except StorageError:
+        raise HTTPException(404, "Original document is unavailable") from None
+    if hashlib.sha256(content).hexdigest() != d.sha256:
+        raise HTTPException(409, "Original document failed its integrity check")
+    return Response(
+        content,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{d.name}"'},
+    )
 
 
 @app.get("/api/cases/{case_id}/search")
@@ -891,3 +931,25 @@ async def stream(
 app.include_router(admin_router)
 app.include_router(action_router)
 app.add_middleware(BodyLimitMiddleware)
+
+
+def serve_frontend(dist):
+    """Single-origin deployment: the built React app at /, the API at /api/*."""
+    root = Path(dist).resolve()
+    if not (root / "index.html").is_file():
+        raise RuntimeError(f"FRONTEND_DIST does not contain a built index.html: {root}")
+    if (root / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=root / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str):
+        if path == "api" or path.startswith("api/"):
+            raise HTTPException(404, "Not found")
+        candidate = (root / path).resolve()
+        if path and candidate.is_relative_to(root) and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(root / "index.html")  # client-side routes survive a refresh
+
+
+if settings().frontend_dist:
+    serve_frontend(settings().frontend_dist)

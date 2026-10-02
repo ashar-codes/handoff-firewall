@@ -1,0 +1,19 @@
+# Never send local secrets, data, dependencies or evaluation artefacts to the image build.
+.git
+**/.env
+**/.env.*
+!.env.example
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/data
+backups
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+frontend/tests
+backend/tests
+evaluation
+docs

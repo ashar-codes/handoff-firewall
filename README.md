@@ -109,6 +109,10 @@ npm run dev
 
 Health: `http://127.0.0.1:8000/api/health`. OpenAPI: `http://127.0.0.1:8000/docs`. Every unsafe API call requires the configured Origin; authenticated mutations additionally require the CSRF token supplied by the UI.
 
+## Hosted test deployment (GitHub + Render + Supabase)
+
+Branch `deployment/hackathon` adds a single-service Docker image (`Dockerfile`, `render.yaml`) that serves the UI, API and worker on one HTTPS origin, with Supabase PostgreSQL and private Supabase Storage. Follow `docs/DEPLOYMENT_GITHUB_RENDER_SUPABASE.md`; variables are listed in `docs/DEPLOYMENT_ENVIRONMENT.md`. This is a test deployment, not a production-readiness claim.
+
 ## All-container option
 
 Generate/edit root `.env`, then use `podman compose` or `docker compose`:

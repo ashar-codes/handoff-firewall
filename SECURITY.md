@@ -39,3 +39,10 @@ The audit reproduced false-READY paths involving stale cached alias mappings, in
 Worker commits/finalization are fenced by the current claim generation and unexpired lease; failed steps roll back partial writes. The request-body limit counts actual received bytes rather than trusting Content-Length. Generic exception logging omits exception text/SQL parameters. SSE rechecks current identity/role/tenant and releases its initial connection before streaming. Backup output has restrictive permissions; restore creates a new isolated database and rejects unsafe archive members.
 
 Static review and negative tests covered the routes and boundaries described in ASTRA_AUDIT.md. The actual worker kill/recovery drill passed on SQLite; native PostgreSQL contention remains unverified. Dependency scanners reported no known advisories at verification time after the justified Vitest update; this is not proof that dependencies or this application are vulnerability-free. The model URL is administrator-controlled configuration, not an uploaded-document/API-selected URL; no arbitrary browsing tool is exposed.
+
+## Hosted test deployment (Render + Supabase)
+
+- Supabase is used only for PostgreSQL and private Storage, both reached from the backend. The browser never receives database credentials, the Supabase secret key or the Groq key, and Supabase Auth is not used.
+- Migration 0004 revokes all privileges of Supabase's `anon`/`authenticated` roles on application tables, sequences and functions. The deployment guide also requires disabling the Data API. Handoff Firewall's RBAC does not protect data reached around it, so both steps matter.
+- The evidence bucket must be private. Object keys are generated server-side (`<workspace>/<case>/<document>/v<version>/<safe name>`), validated against traversal, and write-once. Downloads and READY verification re-check the stored SHA-256.
+- Production refuses insecure cookies, a non-HTTPS origin, SQLite, the test model, Groq without a key and Supabase storage without credentials. The sample seed cannot run, and environment bootstrap creates only the first real administrator.
