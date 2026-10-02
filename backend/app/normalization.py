@@ -176,7 +176,9 @@ def _foreign(line, reference):
     prefix = re.match(r"([A-Za-z]{2,6})[\s_-]", reference or "")
     if not prefix:
         return False
-    for token in re.findall(rf"\b{re.escape(prefix[1])}[\s_-]?[A-Za-z0-9]+\b", line, re.I):
+    # Whole multi-part references ("SO-HACK-1046"), not just their first segment.
+    pattern = rf"\b{re.escape(prefix[1])}[\s_-]?[A-Za-z0-9]+(?:[_-][A-Za-z0-9]+)*\b"
+    for token in re.findall(pattern, line, re.I):
         if identifier(token) != identifier(reference):
             return True
     return False

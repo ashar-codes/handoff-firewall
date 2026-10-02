@@ -115,3 +115,18 @@ def test_different_id_for_the_current_case_blocks_ready(client):
         ("buyer.txt", "For order SO-3, the purchase order is PO-1002."),
     ], key="SO-3")  # fmt: skip
     assert out["state"] != "READY" and scanned(out) == ["PO-1002"]
+
+
+def test_multi_part_business_key_is_not_mistaken_for_another_order(client):
+    """'For order SO-HACK-1046 …' names this case; 'SO-HACK-9001' names another."""
+    from app.normalization import _foreign
+
+    assert not _foreign("For order SO-HACK-1046, the tax ID is X-1.", "SO-HACK-1046")
+    assert _foreign("For order SO-HACK-9001, the tax ID is X-1.", "SO-HACK-1046")
+    assert _foreign("Order SO-HACK-10461 is unrelated.", "SO-HACK-1046")
+    _, out = run(client, TAX, [
+        ("erp.txt", "tax_id: NTN-4301-AB"),
+        ("email.txt", "For order SO-HACK-1046, the correct tax registration number is NTN-4302-CD."),
+        ("other.txt", "For order SO-HACK-9001, the tax registration number is NTN-9999-ZZ."),
+    ], key="SO-HACK-1046")  # fmt: skip
+    assert out["state"] != "READY" and scanned(out) == ["NTN-4302-CD"]
