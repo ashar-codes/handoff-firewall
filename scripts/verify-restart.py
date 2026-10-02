@@ -114,9 +114,14 @@ try:
             },
         ).json()
         case_id = case["id"]
+        # Prose makes the Evidence Agent call the model, which is where the worker is killed.
+        client.post(
+            f"/cases/{case_id}/documents",
+            files={"file": ("note.txt", b"The buyer will send the order shortly.", "text/plain")},
+        ).raise_for_status()
         client.post(f"/cases/{case_id}/run", json={}).raise_for_status()
         marker = root / "inside-model-call"
-        # Kill a real worker during its planning transaction, after earlier checkpoints.
+        # Kill a real worker inside its evidence-extraction transaction, after earlier checkpoints.
         code = f"""from app import agents, worker
 from app.providers import TestProvider
 from pathlib import Path

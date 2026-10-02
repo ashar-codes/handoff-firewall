@@ -1,11 +1,16 @@
 from conftest import PASSWORD, login_as, make_case, process, upload
+from pydantic import Field
 from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import AuthSession, Job, User
 from app.providers import LocalProvider, ModelFailure, provider
-from app.schemas import Draft
+from app.schemas import Strict
 from app.security import verify_password
+
+
+class Draft(Strict):  # a minimal schema for exercising the provider contract
+    message: str = Field(min_length=1, max_length=4000)
 
 
 def test_auth_cookies_csrf_origin_and_logout(client):

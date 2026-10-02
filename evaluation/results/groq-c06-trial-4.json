@@ -1,0 +1,297 @@
+{
+ "meta": {
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "endpoint_host": "api.groq.com",
+  "reasoning_effort": "medium",
+  "commit": "4f637bc+uncommitted",
+  "date": "2026-10-01T22:14:36+00:00",
+  "postgresql": "17.11 (Homebrew)",
+  "min_call_interval_s": 9.0
+ },
+ "summary": {
+  "cases": 1,
+  "outcomes": {
+   "PASS": 0,
+   "SAFE_ESCALATION": 1,
+   "INCORRECT": 0,
+   "UNSAFE": 0
+  },
+  "false_ready": 0,
+  "model_proposed_unsupported_fact": 0,
+  "stored_unsupported_candidate": 0,
+  "system_accepted_unsupported_fact": 0,
+  "human_accepted_unsupported_fact": 0,
+  "unsafe_actions": 0,
+  "duplicate_outreach": 0,
+  "messages": 0,
+  "messages_with_internal_ids": 0,
+  "messages_with_jargon": 0,
+  "unnecessary_requests": 0,
+  "equivalence_cases_handled": 0,
+  "equivalence_cases": 0,
+  "ready_without_support": 0,
+  "hidden_approval": {
+   "cases": 1,
+   "found": 0,
+   "missed": 1,
+   "unnecessary_clarification": 0,
+   "cross_case_cases": 0,
+   "cross_case_false_approval": 0
+  },
+  "prose_identifiers": {
+   "cases": 0,
+   "true_conflicts_detected": 0,
+   "missed_conflicts": 0,
+   "false_conflicts": 0,
+   "false_ready_from_missed_identifier": 0
+  },
+  "model_calls_per_case": 2.0,
+  "ai_created_human_decisions": 0,
+  "extraction": {
+   "proposed": 0,
+   "correct": 0,
+   "not_literal_in_source": 0
+  },
+  "structured_output": {
+   "calls": 2,
+   "valid": 0,
+   "failed": 2,
+   "http_attempts": 4,
+   "attempt_outcomes": {
+    "rate_limit": 4
+   },
+   "served_models": []
+  },
+  "latency_ms": {
+   "median": 5599.0,
+   "p95": 5655,
+   "max": 5655
+  },
+  "tokens": {
+   "prompt": 0,
+   "completion": 0
+  }
+ },
+ "cases": [
+  {
+   "case_id": "C06",
+   "category": "hidden existing approval",
+   "outcome": "SAFE_ESCALATION",
+   "pass": false,
+   "problems": [
+    "final READY=False, expected True",
+    "missed facts {'discount': ['I approve the 12% loyalty discount', 'approve the 12% loyalty discount']}",
+    "review missing ['discount']"
+   ],
+   "expected_state": {
+    "after_run_ready": false,
+    "final_ready": true
+   },
+   "actual_state": {
+    "after_run": "BLOCKED",
+    "final": "BLOCKED"
+   },
+   "agent_route": [
+    "Requirement Agent",
+    "Evidence Agent",
+    "Evidence Agent",
+    "MANUAL"
+   ],
+   "statuses_after_run": {
+    "quote": "SATISFIED",
+    "terms": "SATISFIED",
+    "po": "SATISFIED",
+    "account": "SATISFIED",
+    "tax": "SATISFIED",
+    "discount": "MISSING"
+   },
+   "statuses_final": {
+    "quote": "SATISFIED",
+    "terms": "SATISFIED",
+    "po": "SATISFIED",
+    "account": "SATISFIED",
+    "tax": "SATISFIED",
+    "discount": "MISSING"
+   },
+   "rules": [
+    "po",
+    "quote",
+    "account",
+    "terms",
+    "tax",
+    "discount"
+   ],
+   "model_calls": 2,
+   "latencies_ms": [
+    5543,
+    5655
+   ],
+   "model_call_detail": [
+    {
+     "schema": "Extracted",
+     "ok": false,
+     "error": "Model provider rate limit reached",
+     "latency_ms": 5543,
+     "attempts": [
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": null,
+       "schema": "Extracted",
+       "attempt": 1,
+       "http_status": 429,
+       "outcome": "rate_limit",
+       "error_code": "tokens/rate_limit_exceeded",
+       "latency_ms": 269,
+       "prompt_tokens": null,
+       "completion_tokens": null
+      },
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": null,
+       "schema": "Extracted",
+       "attempt": 2,
+       "http_status": 429,
+       "outcome": "rate_limit",
+       "error_code": "tokens/rate_limit_exceeded",
+       "latency_ms": 267,
+       "prompt_tokens": null,
+       "completion_tokens": null
+      }
+     ]
+    },
+    {
+     "schema": "Extracted",
+     "ok": false,
+     "error": "Model provider rate limit reached",
+     "latency_ms": 5655,
+     "attempts": [
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": null,
+       "schema": "Extracted",
+       "attempt": 1,
+       "http_status": 429,
+       "outcome": "rate_limit",
+       "error_code": "tokens/rate_limit_exceeded",
+       "latency_ms": 362,
+       "prompt_tokens": null,
+       "completion_tokens": null
+      },
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": null,
+       "schema": "Extracted",
+       "attempt": 2,
+       "http_status": 429,
+       "outcome": "rate_limit",
+       "error_code": "tokens/rate_limit_exceeded",
+       "latency_ms": 276,
+       "prompt_tokens": null,
+       "completion_tokens": null
+      }
+     ]
+    }
+   ],
+   "uploads": [
+    {
+     "name": "ERP export.txt",
+     "status": 201
+    },
+    {
+     "name": "scan_00417.txt",
+     "status": 201
+    }
+   ],
+   "facts_expected": {
+    "discount": [
+     "I approve the 12% loyalty discount",
+     "approve the 12% loyalty discount"
+    ]
+   },
+   "facts_found": [
+    {
+     "requirement": "account",
+     "value": "AC-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "po",
+     "value": "PO-6606",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "quote",
+     "value": "QT-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "tax",
+     "value": "NTN-1101-AA",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "terms",
+     "value": "30 days",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    }
+   ],
+   "model_proposed_candidates": [],
+   "unsupported_facts": {
+    "model_proposed": [],
+    "stored_as_candidate": [],
+    "system_accepted": [],
+    "human_accepted": []
+   },
+   "conflicts_expected": [],
+   "conflicts_found": [],
+   "conflict_records": [],
+   "actions_expected": {
+    "clarify": [],
+    "review": [
+     "discount"
+    ]
+   },
+   "actions_proposed": [],
+   "actions_final": [],
+   "unnecessary_actions": [],
+   "unsafe_actions": [],
+   "duplicate_outreach": 0,
+   "messages": [],
+   "message_leaks": 0,
+   "message_jargon": 0,
+   "message_quality_detail": [],
+   "equivalence_expected": [],
+   "equivalence_handled": null,
+   "ready_without_support": [],
+   "ai_created_human_decisions": 0,
+   "false_ready": false,
+   "human_steps": [
+    {
+     "careful_review": []
+    }
+   ],
+   "lock_probe_ms": null,
+   "notes": ""
+  }
+ ]
+}

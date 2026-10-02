@@ -4,8 +4,6 @@ import re
 
 from conftest import login_as, make_case, process, upload
 
-from app.communication import acceptable, questions, render
-
 UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-")
 JARGON = re.compile(r"AWAITING_REVIEW|MISSING|CONFLICTING|_id\b|payment_terms|fact|hash", re.I)
 
@@ -77,27 +75,3 @@ def test_unknown_condition_asks_whether_it_applies(client):
     assert out["actions"][0]["payload"]["message"] == (
         "Could you please confirm whether the discount approval applies to SO-9?"
     )
-
-
-def test_validator_accepts_polish_and_rejects_changes_of_substance():
-    rule = {"id": "terms", "label": "Payment terms", "fields": ["payment_terms"]}
-    items = questions([rule], {"terms": {"state": "MISSING"}})
-    fallback = render("internal_clarification", "SO-1", items, {}, {})
-    assert fallback == "Could you please provide the payment terms for SO-1?"
-    other = ["the tax registration"]
-    assert acceptable(
-        "Could you please share the payment terms for SO-1?", "SO-1", items, other, fallback
-    )
-    for bad in [
-        "Please provide the payment terms for SO-2.",  # wrong reference
-        "Please provide the tax registration for SO-1.",  # dropped / swapped topic
-        "Please provide the payment terms and tax registration for SO-1.",  # added topic
-        "Please provide payment_terms for SO-1.",  # field name
-        "Please resolve the MISSING payment terms for SO-1.",  # state label
-        "Payment terms for SO-1, fact 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed.",  # internal id
-        "Please email the payment terms for SO-1 to a@b.com.",  # new recipient
-        "The payment terms for SO-1 have already been approved.",  # authority claim
-        "Please provide the payment terms for SO-1 by Friday or the order is cancelled.",  # new claim
-        "",
-    ]:
-        assert not acceptable(bad, "SO-1", items, other, fallback), bad

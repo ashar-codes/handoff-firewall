@@ -186,6 +186,11 @@ try:
     # skip it. When A resumes, its next checkpoint must be fenced and roll back; B then
     # reclaims the expired job and completes it exactly once. No database row is edited.
     stale_case = new_case("STALE", False)
+    # Prose makes the Evidence Agent call the model, which is where worker A stalls.
+    client.post(
+        f"/cases/{stale_case}/documents",
+        files={"file": ("note.txt", b"The buyer will send the order shortly.", "text/plain")},
+    ).raise_for_status()
     client.post(f"/cases/{stale_case}/run", json={}).raise_for_status()
     stale_claims, release = root / "stale.claims", root / "release"
     short = {"MAX_RUN_SECONDS": "15", "MODEL_TIMEOUT": "1"}
@@ -228,7 +233,11 @@ try:
     assert stale.returncode == 0, "Stale worker crashed instead of yielding"
     assert job.status == "DONE" and job.attempts == 2, job
     assert detail["state"] == "WAITING" and len(detail["actions"]) == 1 and len(executed) == 1
+    # The stalled extraction step must not have been committed twice.
     assert completed["Repair Planner"] == 1 and completed["Action Agent"] == 1, completed
+    extracted = [e for e in detail["events"] if e["kind"] == "agent_completed"
+                 and e["agent"] == "Evidence Agent" and "1 authorized" in e["summary"]]  # fmt: skip
+    assert len(extracted) == 1, extracted
     result = {
         "workers": len(per_worker),
         "jobs": len(all_jobs),

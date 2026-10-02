@@ -138,9 +138,64 @@ def canonical(rule, value):
     return "raw:" + " ".join(str(value).strip().casefold().split()), "raw"
 
 
-def detect(rule, line):
-    """Typed values a prose line states for this rule (payment terms and amounts only)."""
+# Identifier-shaped token (must contain a digit) and the few words allowed between a requirement's
+# own label and its value: "tax registration number for this order is PKR-TAX-77128".
+_ID = r"[A-Za-z0-9](?:[A-Za-z0-9]|[-_/](?=[A-Za-z0-9])){2,39}"
+_LINK = (
+    r"(?:\s+(?:number|no\.?|id|is|was|reads|now|correct|new|updated|registration|reference|"
+    r"ref|of|the|our|their|on file|for this (?:order|case|customer))\b|\s*[:#=])*"
+)
+_GENERIC = r"\b(customer|approved|consistent|current|the|a|an)\b"
+
+
+def keywords(rule):
+    """Phrases that name this requirement in prose: its label and field names, generic words removed."""
+    found = set()
+    for text in [rule["label"], *(f.replace("_", " ") for f in rule["fields"])]:
+        phrase = " ".join(re.sub(_GENERIC, " ", text.lower()).split())
+        if phrase:
+            found.add(phrase)
+            found.add(re.sub(r" (id|number|no)$", "", phrase))
+    return sorted(found, key=len, reverse=True)
+
+
+def mentions(text, value):
+    """Does text mention this identifier, allowing harmless separator/case differences?"""
+    canonical_id = identifier(value)
+    if not canonical_id:
+        return False
+    parts = [re.escape(p) for p in canonical_id.split("-")]
+    return (
+        re.search(r"(?<![A-Za-z0-9])" + r"[\s_-]?".join(parts) + r"(?![A-Za-z0-9])", text, re.I)
+        is not None
+    )
+
+
+def _foreign(line, reference):
+    """The line names another reference in the business key's own format (e.g. SO-882I vs SO-8821)."""
+    prefix = re.match(r"([A-Za-z]{2,6})[\s_-]", reference or "")
+    if not prefix:
+        return False
+    for token in re.findall(rf"\b{re.escape(prefix[1])}[\s_-]?[A-Za-z0-9]+\b", line, re.I):
+        if identifier(token) != identifier(reference):
+            return True
+    return False
+
+
+def detect(rule, line, reference=None):
+    """Typed values a prose line states for this rule: payment terms, amounts, labelled identifiers."""
     kind = value_type(rule)
+    if kind == "identifier":
+        if _foreign(line, reference):
+            return []
+        found = []
+        for phrase in keywords(rule):
+            pattern = rf"\b{re.escape(phrase)}\b{_LINK}\s*({_ID})"
+            for m in re.finditer(pattern, line, re.I):
+                token = m.group(1)
+                if re.search(r"\d", token) and identifier(token) and token not in found:
+                    found.append(token)
+        return found
     if kind == "payment_terms" and PAYMENT_CONTEXT.search(line):
         spans = [m.group(0) for m in _NET.finditer(line)] + [
             m.group(0) for m in _DAYS.finditer(line)

@@ -5,12 +5,17 @@ import logging
 
 import httpx
 import pytest
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 
 from app import providers
 from app.config import settings
 from app.providers import LocalProvider, ModelFailure, provider, strict_schema
-from app.schemas import Draft, Extracted
+from app.schemas import Extracted, Strict
+
+
+class Draft(Strict):  # a minimal schema for exercising the provider contract
+    message: str = Field(min_length=1, max_length=4000)
+
 
 KEY = "gsk_fixture_SECRET_value_123"
 URL = "https://api.groq.com/openai/v1"

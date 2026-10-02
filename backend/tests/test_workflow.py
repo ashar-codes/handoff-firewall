@@ -269,9 +269,9 @@ def test_model_failure_preserves_manual_path_and_audit(client):
     me = client.get("/api/auth/me").json()
     run_case(c["id"], me["tenant_id"], me["id"], Broken())
     out = client.get("/api/cases/" + c["id"]).json()
-    # Wording failure is audited but the deterministic request still goes out professionally.
+    # Requests need no model: an outage leaves the deterministic, professional request intact.
     assert out["state"] == "WAITING" and out["error"] is None
-    assert any(e["kind"] == "model_failure" for e in out["events"])
+    assert not any(e["kind"] == "model_failure" for e in out["events"])
     assert out["actions"][0]["status"] == "WAITING"
     assert out["actions"][0]["payload"]["message"] == (
         "Could you please provide the payment terms for ORDER-1?"

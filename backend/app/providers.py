@@ -183,8 +183,6 @@ class TestProvider:
     """Explicit test fixture; never a production fallback."""
 
     def structured(self, task, data, schema):
-        if schema.__name__ == "Draft":
-            return schema(message=data["request"])
         return schema(candidates=[])
 
 

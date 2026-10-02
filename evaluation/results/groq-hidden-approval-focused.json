@@ -1,0 +1,1015 @@
+{
+ "meta": {
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "endpoint_host": "api.groq.com",
+  "reasoning_effort": "medium",
+  "commit": "4f637bc+uncommitted",
+  "date": "2026-10-01T22:13:37+00:00",
+  "postgresql": "17.11 (Homebrew)",
+  "min_call_interval_s": 9.0
+ },
+ "summary": {
+  "cases": 4,
+  "outcomes": {
+   "PASS": 3,
+   "SAFE_ESCALATION": 1,
+   "INCORRECT": 0,
+   "UNSAFE": 0
+  },
+  "false_ready": 0,
+  "model_proposed_unsupported_fact": 1,
+  "stored_unsupported_candidate": 1,
+  "system_accepted_unsupported_fact": 0,
+  "human_accepted_unsupported_fact": 0,
+  "unsafe_actions": 0,
+  "duplicate_outreach": 0,
+  "messages": 5,
+  "messages_with_internal_ids": 0,
+  "messages_with_jargon": 0,
+  "unnecessary_requests": 0,
+  "equivalence_cases_handled": 0,
+  "equivalence_cases": 0,
+  "ready_without_support": 0,
+  "hidden_approval": {
+   "cases": 3,
+   "found": 3,
+   "missed": 0,
+   "unnecessary_clarification": 0,
+   "cross_case_cases": 1,
+   "cross_case_false_approval": 0
+  },
+  "prose_identifiers": {
+   "cases": 0,
+   "true_conflicts_detected": 0,
+   "missed_conflicts": 0,
+   "false_conflicts": 0,
+   "false_ready_from_missed_identifier": 0
+  },
+  "model_calls_per_case": 1.0,
+  "ai_created_human_decisions": 0,
+  "extraction": {
+   "proposed": 6,
+   "correct": 3,
+   "not_literal_in_source": 1
+  },
+  "structured_output": {
+   "calls": 4,
+   "valid": 4,
+   "failed": 0,
+   "http_attempts": 4,
+   "attempt_outcomes": {
+    "ok": 4
+   },
+   "served_models": [
+    "openai/gpt-oss-120b"
+   ]
+  },
+  "latency_ms": {
+   "median": 1887.0,
+   "p95": 2232,
+   "max": 2232
+  },
+  "tokens": {
+   "prompt": 3541,
+   "completion": 2211
+  }
+ },
+ "cases": [
+  {
+   "case_id": "C06",
+   "category": "hidden existing approval",
+   "outcome": "PASS",
+   "pass": true,
+   "problems": [],
+   "expected_state": {
+    "after_run_ready": false,
+    "final_ready": true
+   },
+   "actual_state": {
+    "after_run": "WAITING",
+    "final": "READY"
+   },
+   "agent_route": [
+    "Requirement Agent",
+    "Evidence Agent",
+    "Evidence Agent",
+    "Repair Planner",
+    "WAIT"
+   ],
+   "statuses_after_run": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "SATISFIED",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "AWAITING_REVIEW"
+   },
+   "statuses_final": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "SATISFIED",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "SATISFIED"
+   },
+   "rules": [
+    "po",
+    "quote",
+    "account",
+    "terms",
+    "tax",
+    "discount"
+   ],
+   "model_calls": 1,
+   "latencies_ms": [
+    1802
+   ],
+   "model_call_detail": [
+    {
+     "schema": "Extracted",
+     "ok": true,
+     "error": null,
+     "latency_ms": 1802,
+     "attempts": [
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": "openai/gpt-oss-120b",
+       "schema": "Extracted",
+       "attempt": 1,
+       "http_status": 200,
+       "outcome": "ok",
+       "error_code": null,
+       "latency_ms": 1801,
+       "prompt_tokens": 892,
+       "completion_tokens": 606
+      }
+     ]
+    }
+   ],
+   "uploads": [
+    {
+     "name": "ERP export.txt",
+     "status": 201
+    },
+    {
+     "name": "scan_00417.txt",
+     "status": 201
+    }
+   ],
+   "facts_expected": {
+    "discount": [
+     "I approve the 12% loyalty discount",
+     "approve the 12% loyalty discount"
+    ]
+   },
+   "facts_found": [
+    {
+     "requirement": "account",
+     "value": "AC-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "discount",
+     "value": "12% loyalty discount",
+     "method": "model_candidate",
+     "accepted": true,
+     "accepted_by": "reviewer",
+     "decision": "ACCEPTED"
+    },
+    {
+     "requirement": "po",
+     "value": "PO-6606",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "po",
+     "value": "PO-6606",
+     "method": "model_candidate",
+     "accepted": false,
+     "accepted_by": null,
+     "decision": null
+    },
+    {
+     "requirement": "quote",
+     "value": "QT-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "tax",
+     "value": "NTN-1101-AA",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "terms",
+     "value": "30 days",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    }
+   ],
+   "model_proposed_candidates": [
+    {
+     "requirement_id": "po",
+     "field": "po_number",
+     "value": "PO-6606",
+     "quote": "purchase order PO-6606",
+     "literal_in_source": true,
+     "correct": false,
+     "unsupported": false
+    },
+    {
+     "requirement_id": "discount",
+     "field": "discount_approval",
+     "value": "12% loyalty discount",
+     "quote": "12% loyalty discount",
+     "literal_in_source": true,
+     "correct": true,
+     "unsupported": false
+    }
+   ],
+   "unsupported_facts": {
+    "model_proposed": [],
+    "stored_as_candidate": [],
+    "system_accepted": [],
+    "human_accepted": []
+   },
+   "conflicts_expected": [],
+   "conflicts_found": [],
+   "conflict_records": [],
+   "actions_expected": {
+    "clarify": [],
+    "review": [
+     "discount"
+    ]
+   },
+   "actions_proposed": [
+    {
+     "id": "5624b5f3",
+     "kind": "review_evidence",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "PROPOSED",
+     "message": "Please review the discount approval (\u201c12% loyalty discount\u201d in scan_00417.txt) for EVAL-C06 and accept it if it is valid."
+    }
+   ],
+   "actions_final": [
+    {
+     "id": "5624b5f3",
+     "kind": "review_evidence",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "INVALIDATED",
+     "message": "Please review the discount approval (\u201c12% loyalty discount\u201d in scan_00417.txt) for EVAL-C06 and accept it if it is valid."
+    }
+   ],
+   "unnecessary_actions": [],
+   "unsafe_actions": [],
+   "duplicate_outreach": 0,
+   "messages": [
+    "Please review the discount approval (\u201c12% loyalty discount\u201d in scan_00417.txt) for EVAL-C06 and accept it if it is valid."
+   ],
+   "message_leaks": 0,
+   "message_jargon": 0,
+   "message_quality_detail": [],
+   "equivalence_expected": [],
+   "equivalence_handled": null,
+   "ready_without_support": [],
+   "ai_created_human_decisions": 0,
+   "false_ready": false,
+   "human_steps": [
+    {
+     "careful_review": [
+      {
+       "value": "12% loyalty discount",
+       "accepted": true,
+       "status": 200
+      }
+     ]
+    }
+   ],
+   "lock_probe_ms": null,
+   "notes": ""
+  },
+  {
+   "case_id": "C40",
+   "category": "hidden approval linked by quotation number",
+   "outcome": "PASS",
+   "pass": true,
+   "problems": [],
+   "expected_state": {
+    "after_run_ready": false,
+    "final_ready": true
+   },
+   "actual_state": {
+    "after_run": "WAITING",
+    "final": "READY"
+   },
+   "agent_route": [
+    "Requirement Agent",
+    "Evidence Agent",
+    "Evidence Agent",
+    "Repair Planner",
+    "WAIT"
+   ],
+   "statuses_after_run": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "SATISFIED",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "AWAITING_REVIEW"
+   },
+   "statuses_final": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "SATISFIED",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "SATISFIED"
+   },
+   "rules": [
+    "po",
+    "quote",
+    "account",
+    "terms",
+    "tax",
+    "discount"
+   ],
+   "model_calls": 1,
+   "latencies_ms": [
+    1972
+   ],
+   "model_call_detail": [
+    {
+     "schema": "Extracted",
+     "ok": true,
+     "error": null,
+     "latency_ms": 1972,
+     "attempts": [
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": "openai/gpt-oss-120b",
+       "schema": "Extracted",
+       "attempt": 1,
+       "http_status": 200,
+       "outcome": "ok",
+       "error_code": null,
+       "latency_ms": 1968,
+       "prompt_tokens": 886,
+       "completion_tokens": 455
+      }
+     ]
+    }
+   ],
+   "uploads": [
+    {
+     "name": "ERP export.txt",
+     "status": 201
+    },
+    {
+     "name": "IMG_2231.txt",
+     "status": 201
+    }
+   ],
+   "facts_expected": {
+    "discount": [
+     "8% volume discount",
+     "Approved: 8% volume discount",
+     "8% volume discount"
+    ]
+   },
+   "facts_found": [
+    {
+     "requirement": "account",
+     "value": "AC-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "discount",
+     "value": "8% volume discount",
+     "method": "model_candidate",
+     "accepted": true,
+     "accepted_by": "reviewer",
+     "decision": "ACCEPTED"
+    },
+    {
+     "requirement": "po",
+     "value": "PO-4001",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "quote",
+     "value": "QT-4001",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "quote",
+     "value": "QT-4001",
+     "method": "model_candidate",
+     "accepted": false,
+     "accepted_by": null,
+     "decision": null
+    },
+    {
+     "requirement": "tax",
+     "value": "NTN-1101-AA",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "terms",
+     "value": "30 days",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    }
+   ],
+   "model_proposed_candidates": [
+    {
+     "requirement_id": "quote",
+     "field": "quotation_id",
+     "value": "QT-4001",
+     "quote": "Approved: 8% volume discount on quotation QT-4001.",
+     "literal_in_source": true,
+     "correct": false,
+     "unsupported": false
+    },
+    {
+     "requirement_id": "discount",
+     "field": "discount_approval",
+     "value": "8% volume discount",
+     "quote": "Approved: 8% volume discount on quotation QT-4001.",
+     "literal_in_source": true,
+     "correct": true,
+     "unsupported": false
+    }
+   ],
+   "unsupported_facts": {
+    "model_proposed": [],
+    "stored_as_candidate": [],
+    "system_accepted": [],
+    "human_accepted": []
+   },
+   "conflicts_expected": [],
+   "conflicts_found": [],
+   "conflict_records": [],
+   "actions_expected": {
+    "clarify": [],
+    "review": [
+     "discount"
+    ]
+   },
+   "actions_proposed": [
+    {
+     "id": "c3e50e80",
+     "kind": "review_evidence",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "PROPOSED",
+     "message": "Please review the discount approval (\u201c8% volume discount\u201d in IMG_2231.txt) for SO-4001 and accept it if it is valid."
+    }
+   ],
+   "actions_final": [
+    {
+     "id": "c3e50e80",
+     "kind": "review_evidence",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "INVALIDATED",
+     "message": "Please review the discount approval (\u201c8% volume discount\u201d in IMG_2231.txt) for SO-4001 and accept it if it is valid."
+    }
+   ],
+   "unnecessary_actions": [],
+   "unsafe_actions": [],
+   "duplicate_outreach": 0,
+   "messages": [
+    "Please review the discount approval (\u201c8% volume discount\u201d in IMG_2231.txt) for SO-4001 and accept it if it is valid."
+   ],
+   "message_leaks": 0,
+   "message_jargon": 0,
+   "message_quality_detail": [],
+   "equivalence_expected": [],
+   "equivalence_handled": null,
+   "ready_without_support": [],
+   "ai_created_human_decisions": 0,
+   "false_ready": false,
+   "human_steps": [
+    {
+     "careful_review": [
+      {
+       "value": "8% volume discount",
+       "accepted": true,
+       "status": 200
+      }
+     ]
+    }
+   ],
+   "lock_probe_ms": null,
+   "notes": ""
+  },
+  {
+   "case_id": "C41",
+   "category": "approval belonging to another order",
+   "outcome": "SAFE_ESCALATION",
+   "pass": false,
+   "problems": [
+    "unsupported fact stored ['PO-9911']"
+   ],
+   "expected_state": {
+    "after_run_ready": false,
+    "final_ready": false
+   },
+   "actual_state": {
+    "after_run": "WAITING",
+    "final": "WAITING"
+   },
+   "agent_route": [
+    "Requirement Agent",
+    "Evidence Agent",
+    "Evidence Agent",
+    "Repair Planner",
+    "Action Agent",
+    "WAIT"
+   ],
+   "statuses_after_run": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "AWAITING_REVIEW",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "MISSING"
+   },
+   "statuses_final": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "AWAITING_REVIEW",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "MISSING"
+   },
+   "rules": [
+    "po",
+    "quote",
+    "account",
+    "terms",
+    "tax",
+    "discount"
+   ],
+   "model_calls": 1,
+   "latencies_ms": [
+    2232
+   ],
+   "model_call_detail": [
+    {
+     "schema": "Extracted",
+     "ok": true,
+     "error": null,
+     "latency_ms": 2232,
+     "attempts": [
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": "openai/gpt-oss-120b",
+       "schema": "Extracted",
+       "attempt": 1,
+       "http_status": 200,
+       "outcome": "ok",
+       "error_code": null,
+       "latency_ms": 2222,
+       "prompt_tokens": 880,
+       "completion_tokens": 785
+      }
+     ]
+    }
+   ],
+   "uploads": [
+    {
+     "name": "ERP export.txt",
+     "status": 201
+    },
+    {
+     "name": "forwarded.txt",
+     "status": 201
+    }
+   ],
+   "facts_expected": {},
+   "facts_found": [
+    {
+     "requirement": "account",
+     "value": "AC-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "po",
+     "value": "PO-4101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "po",
+     "value": "PO-9911",
+     "method": "deterministic_identifier_scan",
+     "accepted": false,
+     "accepted_by": null,
+     "decision": null
+    },
+    {
+     "requirement": "quote",
+     "value": "QT-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "tax",
+     "value": "NTN-1101-AA",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "terms",
+     "value": "30 days",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    }
+   ],
+   "model_proposed_candidates": [
+    {
+     "requirement_id": "discount",
+     "field": "discount_approval",
+     "value": "approved",
+     "quote": "I approve the 10% discount",
+     "literal_in_source": false,
+     "correct": false,
+     "unsupported": true
+    }
+   ],
+   "unsupported_facts": {
+    "model_proposed": [
+     {
+      "requirement_id": "discount",
+      "field": "discount_approval",
+      "value": "approved",
+      "quote": "I approve the 10% discount",
+      "literal_in_source": false,
+      "correct": false,
+      "unsupported": true
+     }
+    ],
+    "stored_as_candidate": [
+     {
+      "requirement": "po",
+      "value": "PO-9911",
+      "method": "deterministic_identifier_scan",
+      "accepted": false,
+      "accepted_by": null,
+      "decision": null
+     }
+    ],
+    "system_accepted": [],
+    "human_accepted": []
+   },
+   "conflicts_expected": [],
+   "conflicts_found": [
+    "po"
+   ],
+   "conflict_records": [],
+   "actions_expected": {
+    "clarify": [
+     {
+      "requirements": [
+       "discount"
+      ],
+      "owner": "admin"
+     }
+    ],
+    "review": []
+   },
+   "actions_proposed": [
+    {
+     "id": "0a04fc98",
+     "kind": "review_evidence",
+     "requirements": [
+      "po"
+     ],
+     "owner": "admin",
+     "status": "PROPOSED",
+     "message": "Please review the customer purchase order, where \u201cPO-4101\u201d in ERP export.txt and \u201cPO-9911\u201d in forwarded.txt differ for SO-4101 and decide which value is correct."
+    },
+    {
+     "id": "dd22d089",
+     "kind": "internal_clarification",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "WAITING",
+     "message": "Could you please provide the discount approval for SO-4101?"
+    }
+   ],
+   "actions_final": [
+    {
+     "id": "0a04fc98",
+     "kind": "review_evidence",
+     "requirements": [
+      "po"
+     ],
+     "owner": "admin",
+     "status": "PROPOSED",
+     "message": "Please review the customer purchase order, where \u201cPO-4101\u201d in ERP export.txt and \u201cPO-9911\u201d in forwarded.txt differ for SO-4101 and decide which value is correct."
+    },
+    {
+     "id": "dd22d089",
+     "kind": "internal_clarification",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "WAITING",
+     "message": "Could you please provide the discount approval for SO-4101?"
+    }
+   ],
+   "unnecessary_actions": [],
+   "unsafe_actions": [],
+   "duplicate_outreach": 0,
+   "messages": [
+    "Please review the customer purchase order, where \u201cPO-4101\u201d in ERP export.txt and \u201cPO-9911\u201d in forwarded.txt differ for SO-4101 and decide which value is correct.",
+    "Could you please provide the discount approval for SO-4101?"
+   ],
+   "message_leaks": 0,
+   "message_jargon": 0,
+   "message_quality_detail": [],
+   "equivalence_expected": [],
+   "equivalence_handled": null,
+   "ready_without_support": [],
+   "ai_created_human_decisions": 0,
+   "false_ready": false,
+   "human_steps": [],
+   "lock_probe_ms": null,
+   "notes": "The forwarded approval names another PO; flagging that PO for review is safe but an extra human touch."
+  },
+  {
+   "case_id": "C42",
+   "category": "hidden approval linked by business reference",
+   "outcome": "PASS",
+   "pass": true,
+   "problems": [],
+   "expected_state": {
+    "after_run_ready": false,
+    "final_ready": true
+   },
+   "actual_state": {
+    "after_run": "WAITING",
+    "final": "READY"
+   },
+   "agent_route": [
+    "Requirement Agent",
+    "Evidence Agent",
+    "Evidence Agent",
+    "Repair Planner",
+    "WAIT"
+   ],
+   "statuses_after_run": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "SATISFIED",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "AWAITING_REVIEW"
+   },
+   "statuses_final": {
+    "terms": "SATISFIED",
+    "tax": "SATISFIED",
+    "po": "SATISFIED",
+    "quote": "SATISFIED",
+    "account": "SATISFIED",
+    "discount": "SATISFIED"
+   },
+   "rules": [
+    "po",
+    "quote",
+    "account",
+    "terms",
+    "tax",
+    "discount"
+   ],
+   "model_calls": 1,
+   "latencies_ms": [
+    1501
+   ],
+   "model_call_detail": [
+    {
+     "schema": "Extracted",
+     "ok": true,
+     "error": null,
+     "latency_ms": 1501,
+     "attempts": [
+      {
+       "provider": "groq",
+       "model": "openai/gpt-oss-120b",
+       "served_model": "openai/gpt-oss-120b",
+       "schema": "Extracted",
+       "attempt": 1,
+       "http_status": 200,
+       "outcome": "ok",
+       "error_code": null,
+       "latency_ms": 1497,
+       "prompt_tokens": 883,
+       "completion_tokens": 365
+      }
+     ]
+    }
+   ],
+   "uploads": [
+    {
+     "name": "ERP export.txt",
+     "status": 201
+    },
+    {
+     "name": "chat_export.txt",
+     "status": 201
+    }
+   ],
+   "facts_expected": {
+    "discount": [
+     "approved 5% early-payment discount",
+     "approved 5% early-payment discount",
+     "5% early-payment discount"
+    ]
+   },
+   "facts_found": [
+    {
+     "requirement": "account",
+     "value": "AC-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "discount",
+     "value": "5% early-payment discount",
+     "method": "model_candidate",
+     "accepted": true,
+     "accepted_by": "reviewer",
+     "decision": "ACCEPTED"
+    },
+    {
+     "requirement": "po",
+     "value": "PO-4201",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "quote",
+     "value": "QT-1101",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "tax",
+     "value": "NTN-1101-AA",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    },
+    {
+     "requirement": "terms",
+     "value": "30 days",
+     "method": "exact",
+     "accepted": true,
+     "accepted_by": "system",
+     "decision": null
+    }
+   ],
+   "model_proposed_candidates": [
+    {
+     "requirement_id": "discount",
+     "field": "discount_approval",
+     "value": "5% early-payment discount",
+     "quote": "approved 5% early-payment discount.",
+     "literal_in_source": true,
+     "correct": true,
+     "unsupported": false
+    }
+   ],
+   "unsupported_facts": {
+    "model_proposed": [],
+    "stored_as_candidate": [],
+    "system_accepted": [],
+    "human_accepted": []
+   },
+   "conflicts_expected": [],
+   "conflicts_found": [],
+   "conflict_records": [],
+   "actions_expected": {
+    "clarify": [],
+    "review": [
+     "discount"
+    ]
+   },
+   "actions_proposed": [
+    {
+     "id": "ead271cc",
+     "kind": "review_evidence",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "PROPOSED",
+     "message": "Please review the discount approval (\u201c5% early-payment discount\u201d in chat_export.txt) for SO-4201 and accept it if it is valid."
+    }
+   ],
+   "actions_final": [
+    {
+     "id": "ead271cc",
+     "kind": "review_evidence",
+     "requirements": [
+      "discount"
+     ],
+     "owner": "admin",
+     "status": "INVALIDATED",
+     "message": "Please review the discount approval (\u201c5% early-payment discount\u201d in chat_export.txt) for SO-4201 and accept it if it is valid."
+    }
+   ],
+   "unnecessary_actions": [],
+   "unsafe_actions": [],
+   "duplicate_outreach": 0,
+   "messages": [
+    "Please review the discount approval (\u201c5% early-payment discount\u201d in chat_export.txt) for SO-4201 and accept it if it is valid."
+   ],
+   "message_leaks": 0,
+   "message_jargon": 0,
+   "message_quality_detail": [],
+   "equivalence_expected": [],
+   "equivalence_handled": null,
+   "ready_without_support": [],
+   "ai_created_human_decisions": 0,
+   "false_ready": false,
+   "human_steps": [
+    {
+     "careful_review": [
+      {
+       "value": "5% early-payment discount",
+       "accepted": true,
+       "status": 200
+      }
+     ]
+    }
+   ],
+   "lock_probe_ms": null,
+   "notes": ""
+  }
+ ]
+}

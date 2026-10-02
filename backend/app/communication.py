@@ -1,36 +1,8 @@
-"""Human-facing wording for repair actions, rendered from structured questions.
+"""Human-facing wording for repair actions, rendered deterministically from structured questions.
 
-The business action (owner, kind, requirements, questions) is decided by deterministic code.
-This module only words it. Deterministic templates are always available; an optional model
-rewrite is accepted only if it keeps every topic and leaks no internal detail.
+The business action (owner, kind, requirements, questions) is decided by deterministic code; this
+module only words it, using business references, plain topic names, values and source names.
 """
-
-import re
-
-# Internal implementation details that must never reach a business recipient.
-_LEAK = re.compile(
-    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{16,}\b|"
-    r"\b(AWAITING_REVIEW|MISSING|CONFLICTING|INVALIDATED|SATISFIED|NOT_APPLICABLE|UNREADABLE|"
-    r"AMBIGUOUS|PROPOSED|WAITING)\b|\b[a-z]+(?:_[a-z0-9]+)+\b",
-)
-_JARGON = re.compile(
-    r"fact[\s_-]*id|requirement[\s_-]*id|fingerprint|\bhash\b|\bagent\b|orchestrator|"
-    r"candidate evidence|accepted evidence|\bstate\b|\bschema\b|https?://|[\w.+-]+@[\w-]+\.\w+|"
-    r"already (been )?approved|has been (approved|sent)|\bignore\b",
-    re.I,
-)
-
-
-# Courtesy and request words a rewrite may add; every other content word must already appear in
-# the deterministic wording, so a rewrite cannot introduce a topic, identifier or claim.
-_COURTESY = set(
-    "could would you your please kindly review confirm provide share check verify accept correct "
-    "valid whether which value values these those them this that the and for with from any are "
-    "following details information items item thank thanks advance when possible help appreciate "
-    "let know regarding about can will its it's they their our we hello dear team colleague "
-    "evidence document documents source sources differ different shown listed below above "
-    "reference determine discrepancy noting compare versus between supply".split()
-)
 
 
 def topic(rule):
@@ -114,31 +86,3 @@ def render(kind, reference, items, facts_by_requirement, documents):
             detail = f" The sources disagree: {_join(found)}." if len(found) > 1 else ""
             sentences.append(f"Could you please confirm {q['topic']} for {reference}?{detail}")
     return " ".join(sentences)
-
-
-def acceptable(message, reference, items, other_topics, fallback):
-    """A model rewrite may only change wording, never content, recipients or authority."""
-    if not message or len(message) > 700 or "\n\n\n" in message:
-        return False
-    # Document names and quoted values come from the deterministic fallback and may legitimately
-    # contain underscores or words such as "approved"; anything else of that shape is a leak.
-    flagged = [m.group(0) for m in _LEAK.finditer(message)]
-    flagged += [m.group(0) for m in _JARGON.finditer(message)]
-    if any(token not in fallback for token in flagged):
-        return False
-    lowered = message.casefold()
-    if reference.casefold() not in lowered:
-        return False
-    for q in items:
-        words = [w for w in re.findall(r"[a-z0-9]+", q["topic"].casefold()) if w != "the"]
-        if not all(w in lowered for w in words):
-            return False
-    # No new questions: other requirements of the same policy must not be mentioned.
-    if any(t.removeprefix("the ").casefold() in lowered for t in other_topics):
-        return False
-    allowed = set(re.findall(r"[a-z0-9]+", fallback.casefold())) | _COURTESY
-    if any(w not in allowed for w in re.findall(r"[a-z]{3,}", lowered)):
-        return False
-    # Quoted values may be rephrased away but never invented.
-    quoted = set(re.findall(r"“([^”]+)”", message))
-    return quoted <= set(re.findall(r"“([^”]+)”", fallback))

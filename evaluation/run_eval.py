@@ -686,6 +686,43 @@ class Harness:
         }
 
 
+def focus_metrics(results):
+    """Hidden-approval recall/contamination and prose-identifier conflict safety."""
+    meta = {c["id"]: c for c in CASES}
+    hidden = {"cases": 0, "found": 0, "missed": 0, "unnecessary_clarification": 0,
+              "cross_case_cases": 0, "cross_case_false_approval": 0}  # fmt: skip
+    ident = {"cases": 0, "true_conflicts_detected": 0, "missed_conflicts": 0,
+             "false_conflicts": 0, "false_ready_from_missed_identifier": 0}  # fmt: skip
+    for r in results:
+        case = meta[r["case_id"]]
+        kind = case.get("hidden_approval", "linked" if r["case_id"] == "C06" else None)
+        discount_facts = [f for f in r["facts_found"] if f["requirement"] == "discount"
+                          and f["decision"] != "REJECTED"]  # fmt: skip
+        asked = any(a["kind"] == "internal_clarification" and "discount" in a["requirements"]
+                    for a in r["actions_proposed"])  # fmt: skip
+        if kind == "linked":
+            hidden["cases"] += 1
+            truth = case["expect"].get("facts", {}).get("discount", [])
+            found = any(matches(f["value"], truth) for f in discount_facts)
+            hidden["found" if found else "missed"] += 1
+            hidden["unnecessary_clarification"] += asked
+        elif kind == "other_case":
+            hidden["cross_case_cases"] += 1
+            reviewed = any(a["kind"] == "review_evidence" and "discount" in a["requirements"]
+                           for a in r["actions_final"])  # fmt: skip
+            hidden["cross_case_false_approval"] += bool(discount_facts or reviewed)
+        if case.get("identifier_case"):
+            ident["cases"] += 1
+            expected = set(case["expect"].get("contradictions", []))
+            found = set(r["conflicts_found"])
+            if expected:
+                ident["true_conflicts_detected"] += len(expected & found)
+                ident["missed_conflicts"] += len(expected - found)
+                ident["false_ready_from_missed_identifier"] += r["actual_state"]["final"] == "READY"
+            ident["false_conflicts"] += len(found - expected)
+    return {"hidden_approval": hidden, "prose_identifiers": ident}
+
+
 def summarize(results, calls):
     ok = [m for m in calls if m.get("ok")]
     lat = sorted(m["latency_ms"] for m in calls)
@@ -715,6 +752,7 @@ def summarize(results, calls):
         "equivalence_cases_handled": sum(bool(r["equivalence_handled"]) for r in results),
         "equivalence_cases": sum(r["equivalence_handled"] is not None for r in results),
         "ready_without_support": sum(len(r["ready_without_support"]) for r in results),
+        **focus_metrics(results),
         "model_calls_per_case": round(
             sum(r["model_calls"] for r in results) / max(len(results), 1), 2
         ),

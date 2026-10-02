@@ -15,8 +15,6 @@ class Extracts:
         self.candidates = candidates
 
     def structured(self, task, data, schema):
-        if schema is not Extracted:
-            return schema(message=data["request"])
         return Extracted(
             candidates=[
                 {"requirement_id": "terms", "field": "payment_terms", "value": v, "quote": q}
@@ -113,3 +111,14 @@ def test_no_affirmative_evidence_is_never_ready(client):
     upload(client, case, "Standard payment terms apply to this order.", "note.txt")
     out = run(client, case, Extracts())
     assert out["state"] != "READY" and out["statuses"]["terms"]["state"] == "MISSING"
+
+
+def test_replaced_accepted_value_cannot_hide_a_prose_contradiction(client):
+    case = make_case(client, TERMS)
+    erp = upload(client, case, "payment_terms: 30 days", "erp.txt")
+    upload(client, case, "The agreed payment terms are within 30 days of invoice.", "note.txt")
+    assert run(client, case, Extracts())["state"] == "READY"
+    upload(client, case, "payment_terms: 45 days", "erp.txt", erp["id"])
+    client.post("/api/cases/" + case["id"] + "/run", json={})
+    out = run(client, case, Extracts())
+    assert out["state"] != "READY" and out["statuses"]["terms"]["state"] == "AWAITING_REVIEW"

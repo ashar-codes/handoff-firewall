@@ -109,7 +109,3 @@ class Candidate(Strict):
 
 class Extracted(Strict):
     candidates: list[Candidate] = Field(default_factory=list, max_length=50)
-
-
-class Draft(Strict):
-    message: str = Field(min_length=1, max_length=4000)
